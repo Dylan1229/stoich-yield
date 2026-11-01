@@ -1,0 +1,11 @@
+/* Styles for this plugin's renderers (renderers.js), over the kit's (kit/kit.css). They apply only inside
+   each renderer's output, in its own shadow root, and use only the kit's variables, so they follow the
+   host's light and dark themes. */
+
+.worksheet { display: grid; gap: 8px; min-width: 0; }
+.equation { font-size: 15px; overflow-wrap: anywhere; }
+.equation code { color: var(--text); }
+.worksheet-facts { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 0; font-size: 13px; }
+.worksheet-facts dt { color: var(--muted); }
+.worksheet-facts dd { margin: 0; display: flex; flex-wrap: wrap; gap: 4px; }
+.worksheet-path { display: flex; align-items: center; gap: 6px; font-size: 12.5px; overflow-wrap: anywhere; }

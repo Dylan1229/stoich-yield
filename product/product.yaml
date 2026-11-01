@@ -1,0 +1,12 @@
+_ > nanoagent.plugin.v0001.ProductConfig:
+tagline: "Balance a reaction and get its theoretical yield, checked exactly"
+summary: "Give a reaction's reactants and products, the grams you have of some reactants, and the product you want. It balances the equation with the smallest whole-number coefficients, finds the limiting reagent and works out how many grams of the product you can make, using IUPAC standard atomic weights. Every answer is checked against an exact solution."
+highlights:
+  - "Reads ions, hydrates and nested groups such as MnO4^-, CuSO4*5H2O and K4[Fe(CN)6]"
+  - "Balances charge as well as atoms, and refuses reactions with no single balancing"
+  - "Names every tied limiting reagent, not just one"
+steps:
+  - "List the reactants and products, the grams you know, and the product you want"
+  - "It reads each formula and balances the equation"
+  - "It finds the limiting reagent and the theoretical yield in grams"
+  - "The worksheet is saved in your workspace and checked against an exact answer"

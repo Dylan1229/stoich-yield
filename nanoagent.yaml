@@ -1,0 +1,67 @@
+_ > nanoagent.plugin.v0001.ManifestConfig:
+id: stoich-yield
+name: Stoichiometry Yield
+version: 0.1.0
+status: ready
+spec: nanoagent.plugin/v0001
+
+runtime > nanoagent.plugin.v0001.RuntimeConfig:
+  type: mcp_stdio
+  command: [uv, run, --frozen, python, -m, plugin]
+
+permissions > nanoagent.plugin.v0001.PermissionsConfig:
+  network > nanoagent.plugin.v0001.NetworkConfig:
+    hosts: []
+  filesystem > nanoagent.plugin.v0001.FilesystemConfig:
+    write: [workspace]
+
+# One entry per contract.Tool; its input and output classes are contract.TOOLS's.
+tools > dict[contract.Tool, nanoagent.plugin.v0001.ToolConfig]:
+  parse_formula:
+    description: >-
+      Parse 1 to 12 chemical formulas in one call. Each gives its normalized form, its atoms per element (sorted
+      by symbol), its charge and its molar mass in g/mol from the bundled IUPAC standard atomic weights. Grammar:
+      case-sensitive element symbols (Co is cobalt, CO is carbon and oxygen) with optional positive integer counts;
+      nested groups in () or [] with a count, e.g. K4[Fe(CN)6]; hydrate parts joined by * or · with an optional
+      leading count on a later part, e.g. CuSO4*5H2O; an optional charge suffix ^+, ^-, ^2+, ^3-, e.g. MnO4^-.
+      No spaces, phases, electrons or leading coefficients. A malformed formula or unknown element is an error.
+  check_balance:
+    description: >-
+      Check coefficients for a reaction: each element's atoms on the left and right and their difference, both
+      sides' total charge, whether every element and the charge are conserved (balanced), and the gcd of all the
+      coefficients (the smallest integers have gcd 1). It checks; it does not solve.
+  save_worksheet:
+    description: >-
+      Save the answer to a balance-and-yield task as worksheets/<slug>.json in the workspace (saving again
+      replaces it) and return it with its path: submit exactly what it returns. It checks the answer's shape
+      (one positive coefficient per species, limiting reagents among the given reactants, a positive yield) but
+      computes nothing.
+  pin_yield:
+    description: >-
+      The answer key, never an agent's tool: balances the reaction exactly (rational nullspace of the element and
+      charge matrix, which must be one-dimensional and positive), then finds the limiting reagent(s) and the
+      target's theoretical yield as exact fractions, with the sha256 of the atomic weight table.
+
+# One entry per contract.Task; its input and output classes are contract.TASKS's.
+tasks > dict[contract.Task, nanoagent.plugin.v0001.TaskConfig]:
+  parse-formula:
+    description: Parse chemical formulas into atoms, charge and molar mass
+    runner: tool
+    tools: [parse_formula]
+    reference: null
+    instructions: Parse each formula and return its normalized form, its atoms per element, its charge and its molar mass in g/mol.
+  balance-and-yield:
+    description: Balance a reaction, find its limiting reagent(s) and the target product's theoretical yield
+    runner: agent
+    tools: [parse_formula, check_balance, save_worksheet]
+    reference: pin_yield
+    instructions: |-
+      You have 6 turns: 4 tool turns, 1 spare, then submit. Keep reasoning short: lines of numbers, no prose.
+      Turn 1: call parse_formula once with every reactant and then every product, as written in the task.
+      Turn 2: solve the coefficients by hand from the element counts and call check_balance with them. The coefficients are the unique smallest positive integers that conserve every element and the total charge: one per species, in the order of reactants and of products. If balanced is false or gcd is not 1, fix them and call check_balance again (the spare turn).
+      Turn 3: compute with the molar_mass values parse_formula gave (g/mol), keeping 6 significant figures:
+      - for each given reactant: moles = grams / molar_mass, extent = moles / its coefficient;
+      - the limiting reagent is the given reactant with the smallest extent; reactants without a given mass are in excess and never limiting; if several given reactants tie for the smallest extent, list them all, in the order of reactants. In every task two extents are either exactly equal or more than 1% apart, so treat extents within 1% as a tie;
+      - theoretical yield (grams of the target) = smallest extent x target coefficient x target molar_mass. Report at least 4 significant figures; it is accepted when within 0.1% of the exact value.
+      Then call save_worksheet with the task's reactants, products, given and target exactly as given, and your reactant_coefficients, product_coefficients, limiting (formulas spelled as in reactants) and theoretical_yield_g.
+      Turn 4: call submit with exactly the fields save_worksheet returned, path included, changing nothing.
